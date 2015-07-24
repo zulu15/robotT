@@ -118,11 +118,16 @@ public class Robot {
 	}
 
 	public String getNumeroPost(String url) {
+		if (url.indexOf(getUsuarioCuenta()) > 0) {
+			url = url.replaceAll(getUsuarioCuenta(), "/");
+			url = url.replaceAll("\\?", "/");
+		}
 		String[] resultante = url.split("/");
 		return resultante[5];
 	}
 
-	public WebElement getUltimaRespuestaPost(List<WebElement> lista,String usuarioNotificacion,String idComentarioUrl) {
+	public WebElement getUltimaRespuestaPost(List<WebElement> lista, String usuarioNotificacion, String idComentarioUrl) {
+		// Trabajando con los primeros 50 enlaces para optimizar el codigo
 		WebElement ultimoElemento = null;
 		int contador = 0;
 		if (lista != null) {
@@ -131,20 +136,47 @@ public class Robot {
 				String onclick = e.getAttribute("onclick");
 				if (onclick != null && !onclick.isEmpty()) {
 					System.out.println("Encontre " + contador + ")" + onclick);
-						if(onclick.indexOf("replyBox") > 0
-								&& onclick.indexOf(usuarioNotificacion)>0
-									 && onclick.indexOf(idComentarioUrl)>0){
-							System.out.println("Encontramos uno que cumpla todo!");
-								ultimoElemento = e;
-							
-						} //Encuentra los matches
-					}//No esta vacio
-				} //For
-			}//Param lista no vacio
+					if (onclick.indexOf("replyBox") > 0 && onclick.indexOf(usuarioNotificacion) > 0 && onclick.indexOf(idComentarioUrl) > 0) {
+						if (contador >= 50) {
+							break;
+						}
+						System.out.println("Encontramos uno que cumple con todo!");
+						ultimoElemento = e;
+
+					} // Encuentra los matches
+				}// No esta vacio
+			} // For
+		}// Param lista no vacio
 
 		return ultimoElemento;
 
 	}
+
+	public String getUltimoComentario(String usuarioNotificacion, List<WebElement> elementoss) {
+		// Trabajando con los primeros 15 elementos de la lista para optimizar
+		// rendimiento
+		String myUserr = "@" + getUsuarioCuenta();
+		int contador = 0;
+		while (contador <= 30) {
+			for (WebElement e : elementoss) {
+				contador++;
+				System.out.println("Elemento (" + contador + ") [[" + e.getText() + "]]");
+				String nuevoComentario = e.getText().replaceAll("\\r\\n|\\r|\\n", " ");
+				if (nuevoComentario.indexOf("instantes") > 0 && nuevoComentario.indexOf(usuarioNotificacion) > 0) {
+					System.out.println("Encontro uno que cumple ->" + nuevoComentario);
+					String coment[] = nuevoComentario.split("instantes");
+					if (coment[1].indexOf(myUserr) > 0) {
+						coment[1] = coment[1].replaceAll(myUserr, " ");
+					}
+					return coment[1].trim(); // Agregue trim ultimo dia
+				}
+			}
+		}
+
+		return "Error obteniendo ultimo comentario usuario: " + usuarioNotificacion;
+
+	}
+
 	
 	/*
 	 * ##########################################################################
@@ -152,26 +184,6 @@ public class Robot {
 	 * ###########################################################
 	 * #############################
 	 */
-	public String getUltimoComentario(final String usuarioNotificacion, List<WebElement> elementoss) {
-		System.out.println("El usuario que recibimos es: " + usuarioNotificacion);
-		int contador = 0;
-		for (WebElement e : elementoss) {
-			contador++;
-			System.out.println("Elemento (" + contador + ") [[" + e.getText() + "]]");
-			String nuevoComentario = e.getText().replaceAll("\\r\\n|\\r|\\n", " ");
-			if (nuevoComentario.indexOf("instantes") > 0 && nuevoComentario.indexOf(usuarioNotificacion) > 0) {
-				System.out.println("Encontro uno que cumple ->" + nuevoComentario);
-				String coment[] = nuevoComentario.split("instantes");
-				return coment[1].trim(); //Agregue trim ultimo dia
-			} else {
-				System.out.println(contador + ")Elemento no coincide con los criterios");
-			}
-
-		}
-		return "Error obteniendo ultimo comentario usuario: " + usuarioNotificacion;
-
-	}
-
 	public String getIdComentario(String url) {
 		String idComentario = null;
 		if (!url.isEmpty() && url != null) {
