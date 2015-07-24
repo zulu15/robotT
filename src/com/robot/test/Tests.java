@@ -161,20 +161,4 @@ public class Tests {
 
 	}
 
-	/*
-	 * if (lista != null) { int contador = 0; for (WebElement e : lista) {
-	 * contador++; String onclick = e.getAttribute("onclick"); if(onclick!=null
-	 * && !onclick.isEmpty() && onclick.indexOf("replyBox")>0){
-	 * System.out.println("Encontre "+contador+")"+onclick); try {
-	 * 
-	 * WebElement element = e; JavascriptExecutor js =
-	 * (JavascriptExecutor)driver; js.executeScript("arguments[0].click();",
-	 * element); System.out.println("Mande el click..");
-	 * 
-	 * } catch (Exception e2) {
-	 * System.out.println("Error intentando clickearlo "+e2); }
-	 * 
-	 * } } } else { System.out.println("Vaciaaaaaaaaa ajajjaja"); }
-	 */
-
 }
