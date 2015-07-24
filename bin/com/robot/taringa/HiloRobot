@@ -1,0 +1,59 @@
+	static class Hilo extends Thread {
+		private WebDriver hdriver;
+		private String url = null;
+		private String respuesta;
+
+		public Hilo(String url, String xrespuesta) {
+			this.url = url;
+			this.respuesta = xrespuesta;
+			hdriver = new FirefoxDriver();
+		}
+
+		boolean bandera = true;
+
+		public void run() {
+			if (hdriver == null) {
+				System.out.println("(Se levanto el driver del hilo)");
+				hdriver = new FirefoxDriver();
+			}
+
+			hdriver.get(url);
+			do {
+				System.out.println("(Intentando comentar en el hilo)");
+				if (!hdriver.getPageSource().contains(LIMITE_DE_ACCIONES)) {
+					// Tratamos de comentar
+					System.out.println("(No se encuentra mensaje tratamos de comentar)");
+					WebElement textAreaPerfil = hdriver.findElement(By.id(TEXTBOX_PERFIL_COMENTARIO));
+					textAreaPerfil.sendKeys(respuesta);
+					WebElement botonComentarioPerfil = hdriver.findElement(By.id("comment-button-text"));
+					botonComentarioPerfil.click();
+					bandera = false;
+					if (hdriver.getPageSource().contains(LIMITE_DE_ACCIONES)) {
+						bandera = true;
+					}
+					try {
+						Thread.sleep(10000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				} else {
+					System.out.println("(Se encuentra el limite se clickea y espera cada 10s)");
+					WebElement botonComentarioPerfil = hdriver.findElement(By.id("comment-button-text"));
+					botonComentarioPerfil.click();
+					bandera = false;
+					if (hdriver.getPageSource().contains(LIMITE_DE_ACCIONES)) {
+						bandera = true;
+					}
+					try {
+						Thread.sleep(10000);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+
+				}
+			} while (bandera);
+			System.out.println("Resolvido el limite de acciones comentario enviado");
+		}
+	}

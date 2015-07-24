@@ -1,0 +1,61 @@
+
+respuesta en su mensaje
+------------------------------------
+comentó en su mensaje
+url: http://www.taringa.net/-g3nius-/1551675?notification#comment-3638055
+Padre: 3638055
+ hijo-1: div_cmnt_3638086
+ 	hijo-2: div_cmnt_3638100
+ 			hijo-3: 3638118
+ 			
+ 			
+ 			
+ 			
+Encontre 6)Comments.replyBox(this, 1421414)
+Mande el click..
+Encontre 11)Comments.replyBox(this, 1421415)
+Mande el click..
+Encontre 16)Comments.replyBox(this, 1421416)
+Mande el click..
+Encontre 21)Comments.replyBox(this, 1421417)
+Mande el click..
+Encontre 26)Comments.replyBox(this, 1421418)
+Mande el click..
+Encontre 31)Comments.replyBox(this, 1421419)
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 			
+ 				DIAGRAMA DE TOMA DE DECISIONES BOT
+				-----------------------------------
+ 			
+ 			
+ 			1)Obtener la url y captar el id de la notificacion
+ 			
+ 		2)Activar dentro del div comment-linked los span con atributo hidden
+ 		3) Comparar mayores y menores 
+ 		4) Obtener comentario y clickear!	
+ 			
+<div class="comment clearfix div_cmnt_3638100 " data-id="3638100"></div>
+
+<div class="comment clearfix div_cmnt_3638118 " data-id="3638118"></div>
+
+<div class="comment clearfix div_cmnt_3638127 " data-id="3638127"
+-----------------------------
+
+1. 	1436139468
+2.	1436139604
+			backup para obtener el mensaje dependiendo del id del comentario pero se obtiene mal
+				String idComentario = robot.getIdComentario(driver.getCurrentUrl());
+				WebElement comentario = driver.findElement(By.xpath("//div[@data-objid='"+idComentario+"']"));

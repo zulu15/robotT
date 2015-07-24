@@ -1,0 +1,4 @@
+Your identification has been saved in /home/joaquin14/.ssh/id_rsa.
+Your public key has been saved in /home/joaquin14/.ssh/id_rsa.pub.
+The key fingerprint is:
+40:42:bc:ec:e0:3d:ae:17:b4:04:5d:e6:cc:5d:a7:7c lki@outlook.com.ar
