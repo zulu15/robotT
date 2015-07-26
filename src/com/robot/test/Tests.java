@@ -15,36 +15,10 @@ public class Tests {
 
 	public static void main(String[] args) {
 		try {
-			Tests t = new Tests();
-			String url = "file:///home/joaquin14/Descargas/prueba2.html";
-			driver = new FirefoxDriver();
-			driver.get(url);
-//			List<WebElement> lista = driver.findElements(By.cssSelector("a.hastipsy"));
-//			WebElement ultimoElemento = t.ultimaRespuesta(lista,"yiyorock","1429199");
-//			System.out.println("El ultimo elemento seria.. " + ultimoElemento.getAttribute("onclick"));
-//			if(ultimoElemento!=null){
-//				t.clikearJavaScript(ultimoElemento);
-//				StringBuilder selectorCaja = new StringBuilder();
-//				selectorCaja.append("textarea#body_comm_reply_").append("18792647"); //Aqui obtenemos el ndepost
-//				WebElement cajaTexto = driver.findElement(By.cssSelector(selectorCaja.toString()));
-//				cajaTexto.sendKeys("Acabo de escribir en el comentario..");
-//				WebElement botonEnviar = driver.findElement(By.cssSelector("button.btn.g.require-login"));
-//				botonEnviar.click();
-//				System.out.println("Acabo de enviar el click final..");
-//			}
-			int contador=0;	
-			List<WebElement> padre = driver.findElements(By.id("comment-linked"));
-			for(WebElement e:padre){
-				contador++;
-				System.out.println(contador+") "+e.getText());
-			}
-			Object resolt[] = padre.toArray();
-			for(int i=0;i<resolt.length;i++){
-				System.out.println("Resolt");
-				System.out.println(resolt[i]);
-			}
+
 			
-			
+				String comentarioAnidado = "hace @-g3nius- instantes @yiyorock No sé... No tengo una.";
+				System.out.println(comentarioAnidado.indexOf("@-g3nius-"));
 			
 			
 		} catch (Exception e) {
@@ -97,14 +71,12 @@ public class Tests {
 
 	public static String getUsuarioNotificacion(String notificacion) {
 
-		String[] soloUsuario = null;
+		String usuario=null;
 		if (!notificacion.isEmpty() && notificacion != null) {
-			String[] quitamosAtrasArroba = notificacion.split("@");
-			soloUsuario = quitamosAtrasArroba[1].split(" ");
-			System.out.println("Obtuvimos el usuario: " + soloUsuario[0]);
-			return soloUsuario[0];
+			String[] divido = notificacion.split(" ");
+			usuario = divido[0].replace("@", "");
 		}
-		return notificacion;
+		return usuario;
 
 	}
 
