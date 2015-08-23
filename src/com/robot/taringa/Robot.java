@@ -17,6 +17,7 @@ import com.robot.util.Util;
 
 public class Robot {
 	private String usuarioCuenta = null;
+	private String passwordCuenta = null;
 	public static WebDriver driver = null;
 	private String usuarioNotificacion = null;
 	private String tipoNotificacion = null;
@@ -24,20 +25,56 @@ public class Robot {
 	private static final String NOTIFICACION_FOLLOW = " te está siguiendo";
 	private static final String NOTIFICACION_COMENTARIO = "respuesta";
 	private static final String NOTIFICACION_CHARLA = "comentó";
-	private static final String NOTIFICACION_LIKE = "le gustó tu comentario";
+	private static final String NOTIFICACION_LIKE = "gustó";
 	private static final String NOTIFICACION_DISLIKE = "no le gustó tu comentario";
 	private static final String TEXTBOX_SEGUIDOR = "my-shout-body-wall";
 	private static final String TEXTBOX_PERFIL_COMENTARIO = "body_comm";
 	private static final String TARINGA_URL_HOME = "http://www.taringa.net/";
 	private static final String NOTIFICACION = "notification";
+	private static final String SECCION_MI_TARINGA = "/mi/";
 
-	public Robot() {
+	public Robot(String usuario, String password) {
+		this.usuarioCuenta = usuario;
+		this.passwordCuenta = password;
 		iniciarSesion();
 		automatizarProcesos();
 	}
-	
 
-	private void automatizarProcesos() {
+	public Robot() {
+		new CleverBot();
+		iniciarSesion();
+		automatizarProcesos();
+	}
+
+	public void iniciarSesion() {
+		try {
+			Properties archivoPropiedades = null;
+			if (driver == null) {
+				// Se instancia el driver para evitar un null pointer
+				System.out.println("Iniciando driver...");
+				driver = new FirefoxDriver();
+				driver.get("https://www.taringa.net/login?redirect=%2F");
+				archivoPropiedades = Util.leerConfiguracion();
+			}
+			if (usuarioCuenta == null || passwordCuenta == null) {
+				usuarioCuenta = archivoPropiedades.getProperty("usuario");
+				setUsuarioCuenta(usuarioCuenta);
+				passwordCuenta = archivoPropiedades.getProperty("password");
+			}
+
+			WebElement formUsuario = driver.findElement(By.name("nick"));
+			formUsuario.sendKeys(usuarioCuenta);
+			// Dentro del login se ingresa el usuario
+			WebElement formPassword = driver.findElement(By.name("pass"));
+			formPassword.sendKeys(passwordCuenta);
+			formPassword.submit();
+
+		} catch (Exception e) {
+			System.out.println(e);
+		}
+	}
+
+	public void automatizarProcesos() {
 		while (true) {
 			try {
 				System.out.println("(MAIN) Esperando por notificaciones..");
@@ -45,9 +82,9 @@ public class Robot {
 				String notificacion = notificaciones.getText();
 				System.out.println("(MAIN) Llego una notificacion => (" + notificacion + ")");
 				setTipoNotificacion(notificacion);
-				if (!getTipoNotificacion().equals("like") && !getTipoNotificacion().equals("dislike")) {
+				if (!getTipoNotificacion().equals("dislike")) {
 					notificaciones.click();
-					setUsuarioNotificacion(notificacion);
+					setUsuarioNotificacion(notificacion.trim());
 					if (getTipoNotificacion().equals("comentario-perfil")) {
 						responderPerfil();
 					}
@@ -55,14 +92,21 @@ public class Robot {
 						agradecerSeguidor();
 					}
 					if (getTipoNotificacion().equals("comentario-respuesta-charla")) {
-						responderCharla();
+						if (isShout(driver.getCurrentUrl())) {
+							responderShout();
+						} else {
+							responderCharlaPerfil();
+						}
 
 					}
 					if (getTipoNotificacion().equals("comentario-respuesta-post")) {
 						reponderPost();
-					}// Fin comentario-respuesta-post
-
-				}// Fin validacion 'dislike && likes'
+					}
+					if (getTipoNotificacion().equals("like")) {
+						seguirUsuario();
+					}
+				}
+				// Fin validacion 'dislike && likes'
 				if (!driver.getCurrentUrl().equals(TARINGA_URL_HOME)) {
 					System.out.println("(MAIN) Volvemos a la home");
 					driver.get(TARINGA_URL_HOME);
@@ -76,47 +120,22 @@ public class Robot {
 
 	}// Fin metodo
 
+	private void seguirUsuario() {
+		try {
+			navegar(TARINGA_URL_HOME + getUsuarioNotificacion());
+			WebElement btnSeguir = esperarElemento(By.cssSelector("a.btn.g.not-following"), 100);
+			clikearJavaScript(btnSeguir);
+		} catch (Exception e) {
+			System.out.println("Error siguiendo usuario " + e);
+		}
+
+	}
+
 	private void responderPerfil() {
 		WebElement comentario = esperarElemento(By.cssSelector("div.activity-content > p"), 100);
 		String comentarioUsuario = comentario.getText();
 		String respuestaInteligente = CleverBot.obtenerRespuestaIA(comentarioUsuario);
 		comentar(respuestaInteligente, By.id(TEXTBOX_PERFIL_COMENTARIO), By.id("comment-button-text"));
-
-	}
-
-	private void reponderPost() {
-		List<WebElement> listaComentarios = driver.findElements(By.className("comment-text"));
-		String ultimoComentario = getUltimoComentario(getUsuarioNotificacion(), listaComentarios);
-		String respuesta = CleverBot.obtenerRespuestaIA(ultimoComentario);
-		List<WebElement> listaRespuestas = driver.findElements(By.cssSelector("a.hastipsy"));
-		WebElement ultimoElemento = getUltimaRespuestaPost(listaRespuestas, getUsuarioNotificacion(), Util.getIdComentario(driver.getCurrentUrl()),respuesta);
-		System.out.println("El ultimo elemento seria.. " + ultimoElemento.getAttribute("onclick"));
-		if (ultimoElemento != null) {
-			clikearJavaScript(ultimoElemento);
-			StringBuilder selectorCaja = new StringBuilder();
-			selectorCaja.append("textarea#body_comm_reply_").append(Util.getNumeroPost(driver.getCurrentUrl(), getUsuarioCuenta()));
-			comentar(respuesta, By.cssSelector(selectorCaja.toString()), By.cssSelector("button.btn.g.require-login"));
-		}
-	}
-
-	private void responderCharla() {
-		try {
-			List<WebElement> listaComentarios = driver.findElements(By.className("comment-text"));
-			String ultimoComentario = getUltimoComentario(getUsuarioNotificacion(), listaComentarios);
-			String respuesta = CleverBot.obtenerRespuestaIA(ultimoComentario);
-			List<WebElement> listaRespuestas = driver.findElements(By.cssSelector("a.hastipsy"));
-			WebElement ultimoElemento = getUltimaRespuestaPost(listaRespuestas, getUsuarioNotificacion(), Util.getIdComentario(driver.getCurrentUrl()), respuesta);
-			System.out.println("El ultimo elemento seria.. " + ultimoElemento.getAttribute("onclick"));
-			if (ultimoElemento != null) {
-				clikearJavaScript(ultimoElemento);
-				StringBuilder selectorCaja = new StringBuilder();
-				selectorCaja.append("textarea#body_comm_reply_").append(Util.getNumeroPost(driver.getCurrentUrl(), getUsuarioCuenta()));
-				comentar(respuesta, By.cssSelector(selectorCaja.toString()), By.cssSelector("button.btn.g.require-login"));
-			}
-
-		} catch (Exception e) {
-			System.out.println("(Main) Excepcion 'comentario-respuesta-charla' => (" + e + ")");
-		}
 
 	}
 
@@ -130,70 +149,87 @@ public class Robot {
 
 	}
 
-	public void iniciarSesion() {
+	private void responderShout() {
+		System.out.println("''Shout''");
 		try {
-			Properties archivoPropiedades = null;
-			if (driver == null) {
-				// Se instancia el driver para evitar un null pointer
-				System.out.println("Iniciando driver...");
-				driver = new FirefoxDriver();
-				driver.get("https://www.taringa.net/login?redirect=%2F");
-				archivoPropiedades = Util.leerConfiguracion();
+			List<WebElement> listaComentarios = driver.findElements(By.className("comment-text"));
+			String ultimoComentario = getUltimoComentario(getUsuarioNotificacion(), listaComentarios);
+			String respuesta = CleverBot.obtenerRespuestaIA(ultimoComentario);
+			List<WebElement> todosLinks = driver.findElements(By.cssSelector("a.hastipsy"));
+			WebElement ultimoElemento = obtenerEnlace(Util.getIdComentario(driver.getCurrentUrl()), todosLinks);
+			if (ultimoElemento != null) {
+				clikearJavaScript(ultimoElemento);
+				StringBuilder selectorCaja = new StringBuilder();
+				// Se saca el numero de shout a partir del boton de comentar
+				WebElement numeroShout = esperarElemento(By.cssSelector("button#comment-button-text"), 60);
+				String onClick = numeroShout.getAttribute("onclick");
+				selectorCaja.append("textarea#body_comm_reply_").append(Util.getNumeroShout(onClick));
+				comentar(respuesta, By.cssSelector(selectorCaja.toString()), By.cssSelector("button.btn.g.require-login"));
+			} else {
+				System.out.println("Nulo llego el ultimo elemento");
 			}
-			String usuario = archivoPropiedades.getProperty("usuario");
-			setUsuarioCuenta(usuario);
-			String password = archivoPropiedades.getProperty("password");
-			WebElement formUsuario = driver.findElement(By.name("nick"));
-			formUsuario.sendKeys(usuario);
-			// Dentro del login se ingresa el usuario
-			WebElement formPassword = driver.findElement(By.name("pass"));
-			formPassword.sendKeys(password);
-			formPassword.submit();
+
 		} catch (Exception e) {
-			System.out.println(e);
+			System.out.println("(Main) Excepcion 'Respondiendo shout' => (" + e + ")");
 		}
 	}
 
-	public WebElement esperarElemento(final By locatorKey, long timeout) {
-		Wait<WebDriver> wait = new WebDriverWait(driver, timeout);
-		WebElement element = wait.until(new Function<WebDriver, WebElement>() {
-			public WebElement apply(WebDriver driver) {
-				return driver.findElement(locatorKey); // Devuelve el elemento
-														// buscado
+	private void responderCharlaPerfil() {
+		try {
+			System.out.println("(RESPONDER CHARLA PERFIL)");
+			List<WebElement> listaComentarios = esperarElementos(By.className("comment-text"), 100);
+			String ultimoComentario = getUltimoComentario(getUsuarioNotificacion(), listaComentarios);
+			String respuesta = CleverBot.obtenerRespuestaIA(ultimoComentario);
+			List<WebElement> todosLosLinks = esperarElementos(By.cssSelector("a.hastipsy"), 100);
+			WebElement ultimoElemento = obtenerEnlace(Util.getIdComentario(driver.getCurrentUrl()), todosLosLinks);
+			if (ultimoElemento != null) {
+				clikearJavaScript(ultimoElemento);
+				StringBuilder selectorCaja = new StringBuilder();
+				// Se saca el numero de shout a partir del boton de comentar
+				WebElement numeroShout = esperarElemento(By.cssSelector("button#comment-button-text"), 60);
+				String onClick = numeroShout.getAttribute("onclick");
+				selectorCaja.append("textarea#body_comm_reply_").append(Util.getNumeroShout(onClick));
+				comentar(respuesta, By.cssSelector(selectorCaja.toString()), By.id("comment-button-text"));
+			} else {
+				System.out.println("Nulo llego el ultimo elemento");
 			}
-		});
 
-		return element;
-	}
-
-	public void comentar(final String comentario,final By selectorCaja,final By selectorBoton) {
-
-		try {
-			WebElement cajaDeTexto = esperarElemento(selectorCaja, 100);
-			cajaDeTexto.sendKeys(comentario);
-			WebElement botonEnviar = esperarElemento(selectorBoton, 100);
-			botonEnviar.click();
-			System.out.println("Se envio el comentario..");
 		} catch (Exception e) {
-			System.out.println("(Comentar) Error => (" + e + ")");
+			System.out.println("(Main) Excepcion 'Respondiendo Perfil' => (" + e + ")");
 		}
 
 	}
 
-	// ## ULTIMOS METODOS AGREGADOS ##
-
-	public void clikearJavaScript(WebElement ultimoElemento) {
-		try {
-			JavascriptExecutor js = (JavascriptExecutor) driver;
-			js.executeScript("arguments[0].click();", ultimoElemento);
-			System.out.println("Mande el click..");
-		} catch (Exception e) {
-			System.out.println("(JavaScript) Excepcion =>" + e);
+	private WebElement obtenerEnlace(String idComentario, List<WebElement> listaRespuestas) {
+		WebElement ultimo = null;
+		if (listaRespuestas != null && !idComentario.isEmpty()) {
+			for (WebElement webElement : listaRespuestas) {
+				String onClick = webElement.getAttribute("onclick");
+				if (onClick != null) {
+					if (onClick.indexOf(idComentario) > 0 && onClick.indexOf("this") > 0) {
+						ultimo = webElement;
+					}
+				}
+			}
 		}
-
+		return ultimo;
 	}
 
-	public WebElement getUltimaRespuestaPost(List<WebElement> lista, String usuarioNotificacion, String idComentarioUrl, String respuesta) {
+	private void reponderPost() {
+		List<WebElement> listaComentarios = esperarElementos(By.className("comment-text"), 60);
+		String ultimoComentario = getUltimoComentario(getUsuarioNotificacion(), listaComentarios);
+		String respuesta = CleverBot.obtenerRespuestaIA(ultimoComentario);
+		List<WebElement> listaRespuestas = esperarElementos(By.cssSelector("a.hastipsy"), 60);
+		WebElement ultimoElemento = getUltimaRespuestaPost(listaRespuestas, getUsuarioNotificacion(), Util.getIdComentario(driver.getCurrentUrl()));
+		if (ultimoElemento != null) {
+			clikearJavaScript(ultimoElemento);
+			StringBuilder selectorCaja = new StringBuilder();
+			selectorCaja.append("textarea#body_comm_reply_").append(Util.getNumeroPost(driver.getCurrentUrl(), getUsuarioCuenta()));
+			comentar(respuesta, By.cssSelector(selectorCaja.toString()), By.cssSelector("button.btn.g.require-login"));
+		}
+	}
+
+	public WebElement getUltimaRespuestaPost(List<WebElement> lista, String usuarioNotificacion, String idComentarioUrl) {
 		// Trabajando con los primeros 50 enlaces para optimizar el codigo
 		WebElement ultimoElemento = null;
 		int contador = 0;
@@ -214,44 +250,49 @@ public class Robot {
 				}// No esta vacio
 			} // For
 		}// Param lista no vacio
-		if (ultimoElemento == null) {
-			String respuestaPerzonalizada="@"+getUsuarioNotificacion()+" "+respuesta;
-			comentar(respuestaPerzonalizada, By.id(TEXTBOX_PERFIL_COMENTARIO), By.id("comment-button-text"));
-		}
+
 		return ultimoElemento;
 
 	}
 
-
-	//Encontro uno que cumple ->@-g3nius- hace instantes @yiyorock No sé... No tengo una.
-	public String getUltimoComentario(String usuarioNotificacion, List<WebElement> elementoss) {
-		// Trabajando con los primeros 15 elementos de la lista para optimizar
-		// rendimiento
+	// Encontro uno que cumple ->@-g3nius- hace instantes @yiyorock No sé... No
+	// tengo una.(
+	public String getUltimoComentario(String usuarioNotificacion, List<WebElement> elementos) {
+		String ultimoComentario = "No encontre un comentario que cumpla todo";
+		String comentario = "";
+		String usuarioNotif = getUsuarioNotificacion();
+		System.out.println("El usuario de la notificacion es " + usuarioNotif);
 		String myUserr = "@" + getUsuarioCuenta();
 		int contador = 0;
-		while (contador <= 30) {
-			for (WebElement e : elementoss) {
+		try {
+			for (WebElement elemento : elementos) {
 				contador++;
-				System.out.println("Elemento (" + contador + ") [[" + e.getText() + "]]");
-				String nuevoComentario = e.getText().replaceAll("\\r\\n|\\r|\\n", " ");
-				if (nuevoComentario.indexOf("instantes") > 0 && nuevoComentario.indexOf(usuarioNotificacion) > 0 
-						&& nuevoComentario.indexOf("@"+getUsuarioCuenta())!=0) {
-					String coment[] = nuevoComentario.split("instantes");
+				comentario = elemento.getText().replaceAll("\\r\\n|\\r|\\n", " ");
+				;
+				if (comentario.indexOf("instantes") > 0 && comentario.indexOf(usuarioNotif) >= 0) {
+					String coment[] = comentario.split("instantes");
 					if (coment[1].indexOf(myUserr) > 0) {
 						coment[1] = coment[1].replaceAll(myUserr, " ");
 					}
-					return coment[1].trim(); // Agregue trim ultimo dia
+					ultimoComentario = coment[1].trim();
+				}
+				if (contador >= 30) {
+
+					return ultimoComentario;
 				}
 			}
+		} catch (Exception e) {
+			System.out.println("Excepcion " + e);
 		}
 
-		return "Error obteniendo ultimo comentario usuario: " + usuarioNotificacion;
+		System.out.println("El ultimo comentario detectado es " + ultimoComentario);
+
+		return ultimoComentario;
 
 	}
 
-	// ## FIN ULTIMOS METODOS AGREGADOS ##
-
 	public void setTipoNotificacion(String tipoNotificacion) {
+
 		if (tipoNotificacion.indexOf(NOTIFICACION_FOLLOW) > 0) {
 			this.tipoNotificacion = "seguidor";
 		} else if (tipoNotificacion.indexOf(NOTIFICACION_COMENTARIO) > 0 || tipoNotificacion.indexOf("mencionó") > 0 || tipoNotificacion.indexOf("respondió") > 0) {
@@ -267,42 +308,60 @@ public class Robot {
 		} else {
 			this.tipoNotificacion = "dislike";
 		}
-		System.out.println("(setTipoNotificacion) Notificacion = (" + this.tipoNotificacion + ")");
+		System.out.println("La notificacion es == " + getTipoNotificacion());
 	}
 
-	public void setUsuarioNotificacion(String notificacion) {
-		String usuario = null;
-		if (!notificacion.isEmpty() && notificacion != null) {
-			String[] divido = notificacion.split(" ");
-			usuario = divido[0].replace("@", "");
-			System.out.println("(Usuario notificacion) => " + usuario);
-			this.usuarioNotificacion = usuario;
+	public WebElement esperarElemento(final By locatorKey, long timeout) {
+		Wait<WebDriver> wait = new WebDriverWait(driver, timeout);
+		WebElement element = wait.until(new Function<WebDriver, WebElement>() {
+			public WebElement apply(WebDriver driver) {
+				return driver.findElement(locatorKey); // Devuelve el elemento
+														// buscado
+			}
+		});
 
+		return element;
+	}
+
+	public List<WebElement> esperarElementos(final By locatorKey, long timeout) {
+		Wait<WebDriver> wait = new WebDriverWait(driver, timeout);
+		List<WebElement> elementos = wait.until(new Function<WebDriver, List<WebElement>>() {
+			public List<WebElement> apply(WebDriver driver) {
+				return driver.findElements(locatorKey); // Devuelve el elemento
+														// buscado
+			}
+		});
+
+		return elementos;
+	}
+
+	public void comentar(String comentario, By selectorCaja, By selectorBoton) {
+
+		try {
+			WebElement cajaDeTexto = esperarElemento(selectorCaja, 100);
+			cajaDeTexto.sendKeys(comentario);
+			WebElement botonEnviar = esperarElemento(selectorBoton, 100);
+			botonEnviar.click();
+			navegar(TARINGA_URL_HOME);
+		} catch (Exception e) {
+			System.out.println("(Comentar) Error => (" + e + ")");
 		}
+
 	}
 
-	public static WebDriver getDriver() {
-		if (driver == null) {
-			driver = new FirefoxDriver();
+	public void clikearJavaScript(WebElement ultimoElemento) {
+		try {
+			JavascriptExecutor js = (JavascriptExecutor) driver;
+			js.executeScript("arguments[0].click();", ultimoElemento);
+			System.out.println("(CLick JavaScript)");
+		} catch (Exception e) {
+			System.out.println("(JavaScript) Excepcion =>" + e);
 		}
-		return Robot.driver;
+
 	}
 
-	public String getTipoNotificacion() {
-		return tipoNotificacion;
-	}
-
-	public String getUsuarioNotificacion() {
-		return usuarioNotificacion;
-	}
-
-	public String getUsuarioCuenta() {
-		return usuarioCuenta;
-	}
-
-	public void setUsuarioCuenta(String usuarioCuenta) {
-
-		this.usuarioCuenta = usuarioCuenta;
+	private boolean isShout(String currentUrl) {
+		return currentUrl.indexOf(SECCION_MI_TARINGA) > 0;
 	}
 
 	public void navegar(String url) {
@@ -315,6 +374,41 @@ public class Robot {
 			System.out.println("Excepcion metodo navegar: ((" + e + "))");
 		}
 
+	}
+
+	public void setUsuarioCuenta(String usuarioCuenta) {
+
+		this.usuarioCuenta = usuarioCuenta;
+	}
+
+	public String getUsuarioCuenta() {
+		return usuarioCuenta;
+	}
+
+	public void setUsuarioNotificacion(String notificacion) {
+
+		String[] usuario = null;
+		if (!notificacion.isEmpty() && notificacion != null) {
+			String[] quitoArroba = notificacion.split("@");
+			usuario = quitoArroba[1].split(" ");
+
+		}
+		this.usuarioNotificacion = usuario[0];
+	}
+
+	public String getUsuarioNotificacion() {
+		return usuarioNotificacion;
+	}
+
+	public static WebDriver getDriver() {
+		if (driver == null) {
+			driver = new FirefoxDriver();
+		}
+		return Robot.driver;
+	}
+
+	public String getTipoNotificacion() {
+		return tipoNotificacion;
 	}
 
 }

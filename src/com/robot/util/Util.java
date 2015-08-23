@@ -26,7 +26,11 @@ public final class Util {
 		return frasesAleatorias.get((int) (Math.random() * 21));
 
 	}
-
+	public static String obtenerNumeroComentario(String url){
+		String []numero = url.split("#comment-");
+		return numero[1].trim();
+	}
+	
 	public static String getNumeroPost(String url, String usuarioBot) {
 		if (url.indexOf(usuarioBot) > 0) {
 			url = url.replaceAll(usuarioBot, "/");
@@ -35,6 +39,14 @@ public final class Util {
 		String[] resultante = url.split("/");
 		return resultante[5];
 	}
+	
+	public static String getNumeroShout(String x) {
+		x = x.replaceAll("\\)", "");
+		String soloNumero[] =x.split(",");
+		return soloNumero[1].trim();
+	}
+	
+	
 
 	public static String getIdComentario(String url) {
 		String idComentario = null;
@@ -60,5 +72,10 @@ public final class Util {
 		}
 		return prop;
 	}
+
+
+	
+
+	
 
 }

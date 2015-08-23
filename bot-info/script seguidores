@@ -1,0 +1,19 @@
+javascript:var id = 27164867;
+
+setInterval(
+function() {
+myCustomFollow()
+},
+300);	
+
+var myCustomFollow = function() {
+follow(true, {type: "user", obj: id++, errorContainer: ".errorFollowComu"}, 
+function (r){ 
+if(r !== null) { 
+if(r.status == 3 || r.status == 2) { 
+
+} 
+} 
+}
+);
+}

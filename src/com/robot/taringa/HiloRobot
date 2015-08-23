@@ -57,3 +57,38 @@
 			System.out.println("Resolvido el limite de acciones comentario enviado");
 		}
 	}
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	/*
+	
+		private List<WebElement> discriminarLista(final List<WebElement> listaEnlaces) {
+		List<WebElement> enlaces = new ArrayList<WebElement>();
+		if (listaEnlaces != null) {
+			for (WebElement e : listaEnlaces) {
+				String onclick = e.getAttribute("onclick");
+				if (onclick != null) {
+					if (onclick.indexOf("replyBox") > 0 && onclick.indexOf("this") > 0) {
+						enlaces.add(e); // Agreso solo los que sean enlaces de
+										// respuesta
+					}
+				}
+			}
+
+		} else {
+			System.out.println("Lista vacia error!!");
+		}
+		return enlaces;
+	}
+	
+	
+	
+	
+	*/
