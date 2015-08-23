@@ -1,7 +1,8 @@
 # robotT
 Proyecto de un robot para la pagina Taringa el cual hasta la version 1.0 permite:
 
-- Ingresar automaticamente logeandose (Perfecto sin problemas)
-- Leer notificaciones (Un poco bug ya que taringa anda medio mal hay que actualizar un par de veces el navegador y se arregla)
-- Comentar a las respuestas de los usuarios (Comenta en ingles cualquier cosa por problemas de que modificaron la pagina recientemente)
+- Ingresar automaticamente logeandose (Perfecto sin problemas 100%)
+- Leer notificaciones (90 % bien)
+- Comentar a las respuestas de los usuarios (Perfecto, se tarda un poco con los post con muchos comentarios 95% bien)
+- -Seguir a los usuarios automaticamente (Perfecto sin problemas 100%)
 
